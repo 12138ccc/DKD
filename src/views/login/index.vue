@@ -1,125 +1,127 @@
 <template>
   <div class="login-container">
-    <el-form ref="loginForm" :model="loginForm" :rules="loginRules" class="login-form" auto-complete="on" label-position="left">
+    <el-form class="login-form" auto-complete="on" label-position="left" :model="loginForm" :rules="rules">
 
       <div class="title-container">
-        <h3 class="title">Login Form</h3>
+        <h3 class="title">
+          <img src="@/assets/common/logo.png" alt="">
+        </h3>
       </div>
+      <div class="pens">
+        <el-form-item prop="mobile">
+          <span class="svg-container el-icon-mobile" />
+          <el-input v-model="loginForm.loginName" />
+        </el-form-item>
+        <el-form-item prop="password">
+          <!-- <span class="svg-container el-icon-user-solid" /> -->
+          <!-- 左侧图标 -->
+          <span class="svg-container el-icon-lock">
+            <!-- <svg-icon icon-class="password" /> -->
+          </span>
+          <el-input ref="pwd" v-model="loginForm.password" :type="passwordType" />
+          <!-- 右侧图标 -->
+          <span class="svg-container" @click="isShow">
+            <svg-icon :icon-class="passwordType==='password'?'eye':'eye-open'" />
+          </span>
+        <!-- <span class="svg-container el-icon-user-solid" /> -->
+        </el-form-item>
+        <!-- 验证码 -->
 
-      <el-form-item prop="username">
-        <span class="svg-container">
-          <svg-icon icon-class="user" />
-        </span>
-        <el-input
-          ref="username"
-          v-model="loginForm.username"
-          placeholder="Username"
-          name="username"
-          type="text"
-          tabindex="1"
-          auto-complete="on"
-        />
-      </el-form-item>
-
-      <el-form-item prop="password">
-        <span class="svg-container">
-          <svg-icon icon-class="password" />
-        </span>
-        <el-input
-          :key="passwordType"
-          ref="password"
-          v-model="loginForm.password"
-          :type="passwordType"
-          placeholder="Password"
-          name="password"
-          tabindex="2"
-          auto-complete="on"
-          @keyup.enter.native="handleLogin"
-        />
-        <span class="show-pwd" @click="showPwd">
-          <svg-icon :icon-class="passwordType === 'password' ? 'eye' : 'eye-open'" />
-        </span>
-      </el-form-item>
-
-      <el-button :loading="loading" type="primary" style="width:100%;margin-bottom:30px;" @click.native.prevent="handleLogin">Login</el-button>
-
-      <div class="tips">
-        <span style="margin-right:20px;">username: admin</span>
-        <span> password: any</span>
+        <div class="auto">
+          <div class="left">
+            <el-form-item class="inputitem" prop="code">
+              <span class="svg-container"><svg-icon icon-class="yanzhengma" /></span>
+              <el-input v-model="loginForm.code" placeholder="请输入验证码" maxlength="4" />
+            </el-form-item>
+          </div>
+          <div class="right" @click="getcode">
+            <img :src="imgUrl" alt="">
+          </div>
+        </div>
+        <el-button :loading="loading" type="primary" class="button" style="width:100%;margin-bottom:30px;" @click="login">登录</el-button>
       </div>
-
     </el-form>
   </div>
 </template>
 
 <script>
-import { validUsername } from '@/utils/validate'
+// import { validPhone } from '@/utils/validate'
 
 export default {
   name: 'Login',
   data() {
-    const validateUsername = (rule, value, callback) => {
-      if (!validUsername(value)) {
-        callback(new Error('Please enter the correct user name'))
-      } else {
-        callback()
-      }
-    }
-    const validatePassword = (rule, value, callback) => {
-      if (value.length < 6) {
-        callback(new Error('The password can not be less than 6 digits'))
-      } else {
-        callback()
-      }
-    }
+    // const phonevalid = (ruls, val, callback) => {
+    //   if (!validPhone(val)) {
+    //     callback(new Error('账号格式错误'))
+    //   } else {
+    //     callback()
+    //   }
+    // }
     return {
-      loginForm: {
-        username: 'admin',
-        password: '111111'
-      },
-      loginRules: {
-        username: [{ required: true, trigger: 'blur', validator: validateUsername }],
-        password: [{ required: true, trigger: 'blur', validator: validatePassword }]
-      },
-      loading: false,
       passwordType: 'password',
-      redirect: undefined
+      loading: false,
+      imgUrl: '',
+      loginForm: {
+
+        loginName: 'admin',
+        password: 'admin',
+        clientToken: '',
+        loginType: '0',
+        code: ''
+
+      },
+      rules: {
+        mobile: [
+          { required: true, message: '请输入账号', trigger: 'blur' },
+          // { validator: phonevalid, trigger: 'blur' }
+          { pattern: /^[a-zA-Z]\w{4,15}$/, message: '手机号码格式不正确', trigger: 'blur' }
+        ],
+        password: [
+          { required: true, message: '请输入密码', trigger: 'blur' },
+          { min: 5, max: 16, message: '密码格式错误', trigger: 'blur' }
+        ]
+
+      }
     }
   },
   watch: {
-    $route: {
-      handler: function(route) {
-        this.redirect = route.query && route.query.redirect
-      },
-      immediate: true
-    }
+
+  },
+  created() {
+    this.getcode()
   },
   methods: {
-    showPwd() {
-      if (this.passwordType === 'password') {
-        this.passwordType = ''
-      } else {
-        this.passwordType = 'password'
-      }
+    isShow() {
+      this.passwordType === 'password' ? this.passwordType = '' : this.passwordType = 'password'
       this.$nextTick(() => {
-        this.$refs.password.focus()
+        this.$refs.pwd.focus()
       })
     },
-    handleLogin() {
-      this.$refs.loginForm.validate(valid => {
-        if (valid) {
-          this.loading = true
-          this.$store.dispatch('user/login', this.loginForm).then(() => {
-            this.$router.push({ path: this.redirect || '/' })
-            this.loading = false
-          }).catch(() => {
-            this.loading = false
-          })
+
+    async login() {
+      console.log(1)
+      try {
+        // await this.$refs.loginForm.validate()
+        this.loading = true
+        // 接口请求
+        await this.$store.dispatch('user/setlogin', this.loginForm)
+        if (this.$store.state.user.message.success) {
+          this.$message('登录成功')
+          this.$router.replace('/dashboard')
         } else {
-          console.log('error submit!!')
-          return false
+          this.$message('登录失败')
         }
-      })
+      } finally {
+        this.loading = false
+      }
+    },
+    // 获取验证码
+    async  getcode() {
+      this.loginForm.clientToken = Math.floor(Math.random() * 10)
+      await this.$store.dispatch('user/setCode', this.loginForm.clientToken)
+      this.imgUrl = window.URL.createObjectURL(this.$store.state.user.code)
+
+      // console.log(11, this.imgUrl)
     }
   }
 }
@@ -130,8 +132,8 @@ export default {
 /* Detail see https://github.com/PanJiaChen/vue-element-admin/pull/927 */
 
 $bg:#283443;
-$light_gray:#fff;
-$cursor: #fff;
+$light_gray:#999;
+$cursor: #999;
 
 @supports (-webkit-mask: none) and (not (cater-color: $cursor)) {
   .login-container .el-input input {
@@ -141,13 +143,15 @@ $cursor: #fff;
 
 /* reset element-ui css */
 .login-container {
+  background-image: url('~@/assets/common/background.png'); // 设置背景图片
+  background-position: center; // 将图片位置设置为充满整个屏幕
   .el-input {
     display: inline-block;
     height: 47px;
     width: 85%;
 
     input {
-      background: transparent;
+      background: #fff;
       border: 0px;
       -webkit-appearance: none;
       border-radius: 0px;
@@ -163,13 +167,15 @@ $cursor: #fff;
     }
   }
 
+}
   .el-form-item {
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(0, 0, 0, 0.1);
+
+    border: 1px solid #eee;
+    background: #fff;
     border-radius: 5px;
     color: #454545;
   }
-}
+
 </style>
 
 <style lang="scss" scoped>
@@ -178,18 +184,50 @@ $dark_gray:#889aa4;
 $light_gray:#eee;
 
 .login-container {
+  .pens{
+    margin-top: -40px;
+    .auto{
+      display: flex;
+      width: 448px;
+      .left{
+        width: 70%;
+      }
+      .right{
+        width: 30%;
+        img{
+          width: 100%;
+        }
+      }
+    }
+  }
+  .button{
+    width: 100%;
+    height: 52px;
+    background: linear-gradient(262deg,#2e50e1,#6878f0);
+    opacity: .91;
+    border-radius: 8px;
+    color: #fff;
+    text-shadow: 0 7px 22px #cfcfcf;
+  }
   min-height: 100%;
   width: 100%;
   background-color: $bg;
   overflow: hidden;
 
   .login-form {
-    position: relative;
-    width: 520px;
-    max-width: 100%;
-    padding: 160px 35px 0;
-    margin: 0 auto;
-    overflow: hidden;
+
+    position: absolute;
+    width: 518px;
+    height: 388px;
+    top: 50%;
+    left: 50%;
+    margin-top: -194px;
+    margin-left: -259px;
+    padding: 76px 35px 0;
+    background: #fff;
+    -webkit-box-shadow: 0 3px 70px 0 rgb(30 111 72 / 35%);
+    box-shadow: 0 3px 70px 0rgba(30,111,72,.35);
+    border-radius: 10px;
   }
 
   .tips {
@@ -210,6 +248,7 @@ $light_gray:#eee;
     vertical-align: middle;
     width: 30px;
     display: inline-block;
+    font-size: 16px;
   }
 
   .title-container {
@@ -221,6 +260,14 @@ $light_gray:#eee;
       margin: 0px auto 40px auto;
       text-align: center;
       font-weight: bold;
+      img{
+            position: absolute;
+    width: 96px;
+    height: 96px;
+    top: -156px;
+    left: 50%;
+    margin-left: -48px;
+      }
     }
   }
 

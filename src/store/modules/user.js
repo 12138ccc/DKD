@@ -17,6 +17,9 @@ export default {
     },
     SET_MESSAGE(state, message) {
       state.message = message
+    },
+    REMOVE_TOKEN(state) {
+      state.token = null
     }
   },
   actions: {
@@ -24,14 +27,18 @@ export default {
     async setCode({ commit }, Num) {
       const code = await codeAPI(Num)
       // console.log(code.data)
-      commit('SET_CODE', code.data)
+      commit('SET_CODE', code)
     },
     async setlogin(context, loginFrom) {
-      const { data } = await loginAPI(loginFrom)
+      const data = await loginAPI(loginFrom)
       console.log(data)
       context.commit('SET_LOGIN', data.token)
       context.commit('SET_MESSAGE', data)
+    },
+    logout({ commit }) {
+      commit('REMOVE_TOKEN')
     }
+
   }
 }
 
